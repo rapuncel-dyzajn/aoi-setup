@@ -1,0 +1,48 @@
+---
+- name: Setup new host
+  hosts: servers
+  force_handlers: yes
+  ignore_unreachable: yes
+  serial: 1
+
+  pre_tasks:
+
+  - debug:
+      msg: "`{{ ansible_distribution}}` `{{ ansible_distribution_version }}`"
+
+  - name: apt update_cache
+    apt:
+      update_cache: true
+
+  - name: Install dependencies Ubuntu 20
+    package:
+      state: latest
+      name:
+      - ncat
+      - python3-pip
+
+  - name: Install packages Ubuntu
+    package:
+      name: "{{ item }}"
+      state: present
+    loop:
+    - mc
+    - net-tools
+    - iotop
+    - wget
+    - zip
+    - unzip
+    - git
+
+  roles: []
+
+  tasks:
+
+  - name: Ensure directories exist
+    file:
+      state: directory
+      path: "{{ item.path }}"
+      mode: "{{ item.mode | default('0755') }}"
+      owner: "{{ (item.owner | default(ca_owner))|string }}"
+      group: "{{ (item.group | default(ca_group))|string }}"
+    loop: []
