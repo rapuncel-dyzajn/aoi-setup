@@ -139,6 +139,7 @@
     loop:
     - path: /opt/aoi-led-api
     - path: /opt/aoi-led-api/app
+    - path: /opt/aoi-led-api/dist
     # tags:
     # - app
 
@@ -152,8 +153,8 @@
       src: aoi-led-api/app/__init__.py
     - dest: /opt/aoi-led-api/app/main.py
       src: aoi-led-api/app/main.py
-    - dest: /opt/aoi-led-api/index.html
-      src: aoi-led-api/index.html
+    - dest: /opt/aoi-led-api/dist/index.html
+      src: aoi-led-api/dist/index.html
     tags:
     - app
 

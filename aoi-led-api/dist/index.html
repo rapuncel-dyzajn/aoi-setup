@@ -179,7 +179,7 @@
   <!-- RGB-стрічки -->
   <section class="strips" aria-label="Керування кольором стрічок">
 
-    <article class="panel strip" data-strip="1">
+    <article class="panel strip" data-strip="0">
       <h2>strip top</h2>
       <div class="channels">
         <div class="channel">
@@ -232,7 +232,7 @@
       <div class="status" role="status" aria-live="polite"></div>
     </article>
 
-    <article class="panel strip" data-strip="2">
+    <article class="panel strip" data-strip="1">
       <h2>strip mid</h2>
       <div class="channels">
         <div class="channel">
@@ -285,7 +285,7 @@
       <div class="status" role="status" aria-live="polite"></div>
     </article>
 
-    <article class="panel strip" data-strip="3">
+    <article class="panel strip" data-strip="2">
       <h2>strip btm</h2>
       <div class="channels">
         <div class="channel">
@@ -354,6 +354,16 @@
       );
     }
 
+    async function getJson(url) {
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      return response.json();
+    }
+
     async function postJson(url, payload, statusElement) {
       statusElement.classList.remove("error");
       statusElement.textContent = "Надсилання…";
@@ -405,10 +415,11 @@
     });
 
     // RGB-канали кожної стрічки
-    document.querySelectorAll(".strip").forEach(stripElement => {
+    const stripElements = document.querySelectorAll(".strip");
+
+    stripElements.forEach(stripElement => {
       const strip = stripElement.dataset.strip;
       const status = stripElement.querySelector(".status");
-
       const preview = stripElement.querySelector(".color-preview");
 
       function updatePreview() {
@@ -418,9 +429,6 @@
 
         preview.style.backgroundColor = `rgb(${R}, ${G}, ${B})`;
       }
-
-      // Встановлюємо початковий колір при завантаженні сторінки
-      updatePreview();
 
       stripElement
         .querySelectorAll('input[type="range"]')
@@ -437,7 +445,7 @@
               postJson(
                 "/api/strip/color",
                 {
-                  strip: strip,
+                  strip: Number(strip),
                   R: Number(
                     stripElement.querySelector(
                       '[data-channel="R"]'
@@ -459,7 +467,68 @@
             });
           });
         });
+
+      stripElement.updatePreview = updatePreview;
     });
+
+    // Завантаження початкового стану із сервера
+    async function initializeControls() {
+      brightness.disabled = true;
+      stripElements.forEach(element => {
+        element.querySelectorAll('input[type="range"]').forEach(input => {
+          input.disabled = true;
+        });
+      });
+
+      try {
+        // Читаємо загальну яскравість
+        const brightnessData = await getJson("/api/brightness");
+
+        brightness.value = brightnessData.brightness;
+        brightnessValue.value = brightnessData.brightness;
+
+        // Читаємо колір кожної стрічки
+        const results = await Promise.all(
+          Array.from(stripElements).map(async stripElement => {
+            const strip = stripElement.dataset.strip;
+            const data = await getJson(
+              `/api/strip/color?strip=${encodeURIComponent(strip)}`
+            );
+
+            ["R", "G", "B"].forEach(channel => {
+              const input = stripElement.querySelector(
+                `[data-channel="${channel}"]`
+              );
+              const output = stripElement.querySelector(
+                `output[for="${input.id}"]`
+              );
+
+              input.value = data[channel];
+              output.value = data[channel];
+            });
+
+            stripElement.updatePreview();
+            return strip;
+          })
+        );
+
+        brightnessStatus.textContent = "Стан завантажено";
+        console.log("Завантажено стан стрічок:", results);
+      } catch (error) {
+        brightnessStatus.classList.add("error");
+        brightnessStatus.textContent =
+          `Не вдалося завантажити стан із сервера: ${error.message}`;
+      } finally {
+        brightness.disabled = false;
+        stripElements.forEach(element => {
+          element.querySelectorAll('input[type="range"]').forEach(input => {
+            input.disabled = false;
+          });
+        });
+      }
+    }
+
+    initializeControls();
   </script>
 </body>
 </html>
