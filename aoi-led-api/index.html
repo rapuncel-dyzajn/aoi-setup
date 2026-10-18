@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LED Strip Controller</title>
+
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont,
+                   "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px 16px 40px;
+    }
+
+    h1 {
+      margin: 0 0 24px;
+      font-size: 1.6rem;
+    }
+
+    h2 {
+      margin: 0 0 16px;
+      font-size: 1.15rem;
+    }
+
+    .panel {
+      border: 1px solid #8886;
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 18px;
+    }
+
+    .brightness-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: center;
+    }
+
+    input[type="range"] {
+      accent-color: #3688e8;
+    }
+
+    #brightness {
+      width: 100%;
+    }
+
+    output {
+      min-width: 3ch;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      font-weight: 650;
+    }
+
+    .strips {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .strip {
+      text-align: center;
+    }
+
+    .channels {
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+      gap: clamp(12px, 4vw, 30px);
+      min-height: 230px;
+    }
+
+    .channel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      min-width: 38px;
+    }
+
+    .channel label {
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .channel output {
+      text-align: center;
+    }
+
+    .vertical-range {
+      height: 150px;
+      width: 28px;
+      writing-mode: vertical-lr;
+      direction: rtl;
+      cursor: pointer;
+    }
+
+    .color-preview {
+      width: 36px;
+      height: 36px;
+      margin: 12px auto 0;
+      border: 1px solid #8888;
+      border-radius: 5px;
+      background-color: rgb(255, 255, 255);
+    }
+
+    .status {
+      min-height: 1.5em;
+      font-size: 0.9rem;
+      color: #777;
+      margin-top: 12px;
+    }
+
+    .status.error {
+      color: #d33;
+    }
+
+    @media (max-width: 560px) {
+      body {
+        padding: 16px 10px 28px;
+      }
+
+      .panel {
+        padding: 14px 10px;
+      }
+
+      .strips {
+        grid-template-columns: 1fr;
+      }
+
+      .channels {
+        min-height: 190px;
+      }
+
+      .vertical-range {
+        height: 125px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Керування LED-стрічками</h1>
+
+  <!-- Загальна яскравість -->
+  <section class="panel" aria-labelledby="brightness-title">
+    <h2 id="brightness-title">Загальна яскравість</h2>
+
+    <div class="brightness-row">
+      <input
+        id="brightness"
+        type="range"
+        min="0"
+        max="255"
+        value="32"
+        aria-label="Загальна яскравість"
+      >
+
+      <output id="brightness-value" for="brightness">32</output>
+    </div>
+
+    <div
+      id="brightness-status"
+      class="status"
+      role="status"
+      aria-live="polite"
+    ></div>
+  </section>
+
+  <!-- RGB-стрічки -->
+  <section class="strips" aria-label="Керування кольором стрічок">
+
+    <article class="panel strip" data-strip="1">
+      <h2>strip top</h2>
+      <div class="channels">
+        <div class="channel">
+          <label for="strip_1-R">R</label>
+          <input
+            class="vertical-range"
+            id="strip_1-R"
+            data-channel="R"
+            type="range"
+            min="0"
+            max="255"
+            value="255"
+            aria-label="strip_1 Red"
+          >
+          <output for="strip_1-R">255</output>
+        </div>
+
+        <div class="channel">
+          <label for="strip_1-G">G</label>
+          <input
+            class="vertical-range"
+            id="strip_1-G"
+            data-channel="G"
+            type="range"
+            min="0"
+            max="255"
+            value="255"
+            aria-label="strip_1 Green"
+          >
+          <output for="strip_1-G">255</output>
+        </div>
+
+        <div class="channel">
+          <label for="strip_1-B">B</label>
+          <input
+            class="vertical-range"
+            id="strip_1-B"
+            data-channel="B"
+            type="range"
+            min="0"
+            max="255"
+            value="255"
+            aria-label="strip_1 Blue"
+          >
+          <output for="strip_1-B">255</output>
+        </div>
+      </div>
+
+      <div class="color-preview" aria-label="Попередній перегляд кольору"></div>
+      <div class="status" role="status" aria-live="polite"></div>
+    </article>
+
+    <article class="panel strip" data-strip="2">
+      <h2>strip mid</h2>
+      <div class="channels">
+        <div class="channel">
+          <label for="strip_2-R">R</label>
+          <input
+            class="vertical-range"
+            id="strip_2-R"
+            data-channel="R"
+            type="range"
+            min="0"
+            max="255"
+            value="255"
+            aria-label="strip_2 Red"
+          >
+          <output for="strip_2-R">255</output>
+        </div>
+
+        <div class="channel">
+          <label for="strip_2-G">G</label>
+          <input
+            class="vertical-range"
+            id="strip_2-G"
+            data-channel="G"
+            type="range"
+            min="0"
+            max="255"
+            value="255"
+            aria-label="strip_2 Green"
+          >
+          <output for="strip_2-G">255</output>
+        </div>
+
+        <div class="channel">
+          <label for="strip_2-B">B</label>
+          <input
+            class="vertical-range"
+            id="strip_2-B"
+            data-channel="B"
+            type="range"
+            min="0"
+            max="255"
+            value="255"
+            aria-label="strip_2 Blue"
+          >
+          <output for="strip_2-B">255</output>
+        </div>
+      </div>
+
+      <div class="color-preview" aria-label="Попередній перегляд кольору"></div>
+      <div class="status" role="status" aria-live="polite"></div>
+    </article>
+
+    <article class="panel strip" data-strip="3">
+      <h2>strip btm</h2>
+      <div class="channels">
+        <div class="channel">
+          <label for="strip_3-R">R</label>
+          <input
+            class="vertical-range"
+            id="strip_3-R"
+            data-channel="R"
+            type="range"
+            min="0"
+            max="255"
+            value="255"
+            aria-label="strip_3 Red"
+          >
+          <output for="strip_3-R">255</output>
+        </div>
+
+        <div class="channel">
+          <label for="strip_3-G">G</label>
+          <input
+            class="vertical-range"
+            id="strip_3-G"
+            data-channel="G"
+            type="range"
+            min="0"
+            max="255"
+            value="255"
+            aria-label="strip_3 Green"
+          >
+          <output for="strip_3-G">255</output>
+        </div>
+
+        <div class="channel">
+          <label for="strip_3-B">B</label>
+          <input
+            class="vertical-range"
+            id="strip_3-B"
+            data-channel="B"
+            type="range"
+            min="0"
+            max="255"
+            value="255"
+            aria-label="strip_3 Blue"
+          >
+          <output for="strip_3-B">255</output>
+        </div>
+      </div>
+
+      <div class="color-preview" aria-label="Попередній перегляд кольору"></div>
+      <div class="status" role="status" aria-live="polite"></div>
+    </article>
+
+  </section>
+
+  <script>
+    // Затримка перед запитом зменшує кількість звернень до API
+    // під час переміщення повзунка.
+    const debounceTimers = new WeakMap();
+
+    function debounce(element, callback, delay = 80) {
+      clearTimeout(debounceTimers.get(element));
+
+      debounceTimers.set(
+        element,
+        setTimeout(callback, delay)
+      );
+    }
+
+    async function postJson(url, payload, statusElement) {
+      statusElement.classList.remove("error");
+      statusElement.textContent = "Надсилання…";
+
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const detail = await response.text();
+
+          throw new Error(
+            `HTTP ${response.status}: ${detail}`
+          );
+        }
+
+        statusElement.textContent = "Застосовано";
+      } catch (error) {
+        statusElement.classList.add("error");
+        statusElement.textContent =
+          `Помилка API: ${error.message}`;
+      }
+    }
+
+    // Загальна яскравість
+    const brightness = document.getElementById("brightness");
+    const brightnessValue =
+      document.getElementById("brightness-value");
+    const brightnessStatus =
+      document.getElementById("brightness-status");
+
+    brightness.addEventListener("input", () => {
+      brightnessValue.value = brightness.value;
+
+      debounce(brightness, () => {
+        postJson(
+          "/api/brightness",
+          {
+            brightness: Number(brightness.value)
+          },
+          brightnessStatus
+        );
+      });
+    });
+
+    // RGB-канали кожної стрічки
+    document.querySelectorAll(".strip").forEach(stripElement => {
+      const strip = stripElement.dataset.strip;
+      const status = stripElement.querySelector(".status");
+
+      const preview = stripElement.querySelector(".color-preview");
+
+      function updatePreview() {
+        const R = stripElement.querySelector('[data-channel="R"]').value;
+        const G = stripElement.querySelector('[data-channel="G"]').value;
+        const B = stripElement.querySelector('[data-channel="B"]').value;
+
+        preview.style.backgroundColor = `rgb(${R}, ${G}, ${B})`;
+      }
+
+      // Встановлюємо початковий колір при завантаженні сторінки
+      updatePreview();
+
+      stripElement
+        .querySelectorAll('input[type="range"]')
+        .forEach(input => {
+          const output = stripElement.querySelector(
+            `output[for="${input.id}"]`
+          );
+
+          input.addEventListener("input", () => {
+            output.value = input.value;
+            updatePreview();
+
+            debounce(input, () => {
+              postJson(
+                "/api/strip/color",
+                {
+                  strip: strip,
+                  R: Number(
+                    stripElement.querySelector(
+                      '[data-channel="R"]'
+                    ).value
+                  ),
+                  G: Number(
+                    stripElement.querySelector(
+                      '[data-channel="G"]'
+                    ).value
+                  ),
+                  B: Number(
+                    stripElement.querySelector(
+                      '[data-channel="B"]'
+                    ).value
+                  )
+                },
+                status
+              );
+            });
+          });
+        });
+    });
+  </script>
+</body>
+</html>
