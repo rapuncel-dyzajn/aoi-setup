@@ -1,0 +1,54 @@
+---
+- name: Deploy aoi-led-api
+  hosts: servers
+  become: yes
+  become_method: sudo
+  force_handlers: yes
+
+  tasks:
+
+  - name: Install python modules
+    pip:
+      state: present
+      break_system_packages: yes
+      name:
+      - rpi-ws281x
+      - fastapi
+      - uvicorn[standard]
+
+  - name: Ensure directories exist
+    file:
+      state: directory
+      path: "{{ item.path }}"
+      mode: "{{ item.mode | default('0755') }}"
+      owner: "{{ (item.owner | default(0))|string }}"
+      group: "{{ (item.group | default(0))|string }}"
+    loop:
+    - path: /opt/aoi-led-api
+    - path: /opt/aoi-led-api/app
+    - path: /opt/aoi-led-api/dist
+
+  - name: Deploy AOI LED Control API
+    copy:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      mode: "{{ item.mode | default('0644') }}"
+    loop:
+    - dest: /opt/aoi-led-api/app/__init__.py
+      src: aoi-led-api/app/__init__.py
+    - dest: /opt/aoi-led-api/app/main.py
+      src: aoi-led-api/app/main.py
+    - dest: /opt/aoi-led-api/dist/index.html
+      src: aoi-led-api/dist/index.html
+    - dest: /etc/systemd/system/aoi-led-api.service
+      src: aoi-led-api/aoi-led-api.service
+    tags:
+    - app
+
+  - name: Ensure aoi-led-api is active
+    service:
+      name: aoi-led-api
+      state: started
+      enabled: true
+    tags:
+    - app
