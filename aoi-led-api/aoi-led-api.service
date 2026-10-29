@@ -9,6 +9,8 @@ WorkingDirectory=/opt/aoi-led-api
 ExecStart=uvicorn app.main:app --host 0.0.0.0 --port 8000
 Restart=on-failure
 RestartSec=3
+KillSignal=SIGTERM
+TimeoutStopSec=30
 
 Environment=PYTHONUNBUFFERED=1
 

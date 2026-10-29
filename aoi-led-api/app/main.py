@@ -3,6 +3,7 @@ import logging
 import time
 
 from pathlib import Path
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
@@ -28,30 +29,25 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI(
-    title="LED Strip Daemon",
-    version="0.1.0",
-)
-
-app.frontend("/", directory="dist", fallback="index.html")
-
-# Блокування для операцій над LED-стрічками
-strips_lock = asyncio.Lock()
-
 strips = PixelStrip(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL, LED_STRIP)
 strips.begin()
+strips_lock = asyncio.Lock()
 
-for led in range(0, LED_COUNT):
-    strips.setPixelColor(led, Color(255, 255, 255))
-strips.show()
+def strips_init() -> None:
+    for led in range(0, STRIP_LEDS):
+        strips.setPixelColor(led, Color(167, 255, 63))
+    for led in range(STRIP_LEDS, STRIP_LEDS * 2):
+        strips.setPixelColor(led, Color(255, 178, 30))
+    for led in range(STRIP_LEDS *2, STRIP_LEDS * 3):
+        strips.setPixelColor(led, Color(53, 156, 255))
+    strips.show()
 
+def strips_shutdown() -> None:
+    for led in range(0, LED_COUNT):
+        strips.setPixelColor(led, Color(0, 0, 0))
+    strips.show()
 
 def set_brightness(brightness: int) -> None:
-    """
-    Встановити яскравість усіх LED.
-
-    brightness: 0..255
-    """
     strips.setBrightness(brightness)
     strips.show()
 
@@ -61,18 +57,35 @@ def set_strip_color(
     G: int,
     B: int,
 ) -> None:
-    """
-    Встановити колір конкретної стрічки.
-
-    strip: ідентифікатор стрічки
-    R, G, B: 0..255
-    """
     logger.info(f"{strip}: {R},{G},{B}")
 
     for led in range(STRIP_LEDS * strip, STRIP_LEDS * (strip + 1)):
         strips.setPixelColor(led, Color(R, G, B))
     strips.show()
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("Run: turning on LEDs")
+    yield
+
+    logger.info("Shutting down: turning off LEDs")
+
+    try:
+        async with strips_lock:
+            await run_in_threadpool(strips_shutdown)
+        logger.info("All LEDs turned off")
+
+    except Exception:
+        logger.exception("Failed to turn off LEDs")
+
+app = FastAPI(
+    title="LED Strip Daemon",
+    version="0.1.0",
+    lifespan=lifespan,
+)
+
+app.frontend("/", directory="dist", fallback="index.html")
+strips_init()
 
 class BrightnessRequest(BaseModel):
     brightness: int = Field(strict=True, ge=0, le=255)
